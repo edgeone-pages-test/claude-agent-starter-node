@@ -34,9 +34,12 @@ const SYSTEM_PROMPT =
   '  Parameters: op is required; use url for fetch; use selector, text, or script when needed.\n\n' +
   'Available project skills:\n' +
   '- sandbox-algorithms: use this when the user asks to compute or verify deterministic algorithmic results such as Fibonacci sequences, factorials, primes, sorting, combinations, or explicitly asks for sandbox-algorithms.\n\n' +
-  'Filesystem boundary:\n' +
-  '- Use Claude Code Read only for project skill resources under .claude/skills, such as SKILL.md references or scripts needed by a loaded skill.\n' +
-  '- Use the EdgeOne files tool for user workspace files, temporary files, generated artifacts, and all non-skill file operations.\n\n' +
+  'Filesystem boundary (two machines — do not mix paths):\n' +
+  '- Claude Code Skill/Read run in the agent process. Skill files live under .claude/skills on that machine.\n' +
+  '- EdgeOne files_*, commands, and code_interpreter run in a separate sandbox VM. That VM does not contain .claude/skills, /tmp/user-code, or the local project path.\n' +
+  '- Never pass agent cwd paths (including /tmp/user-code and .claude/skills) to files_list, files_read, files_exists, or commands.\n' +
+  '- After Skill loads SKILL.md, do not list the skill directory. If a skill script is required, Read it with Claude Code Read. For algorithm tasks, prefer a self-contained code_interpreter snippet and skip file lookup.\n' +
+  '- Use EdgeOne files_* only for files that already live inside the sandbox.\n\n' +
   'Tool-use rules:\n' +
   '1. Use a tool only when it is necessary to answer the user concretely or demonstrate a platform capability.\n' +
   '2. Call tools one at a time and wait for each result before deciding the next step.\n' +
@@ -118,7 +121,7 @@ function buildAgentOptions(opts?: {
         disableBypassPermissionsMode: 'disable',
       },
     },
-    maxTurns: 5,
+    maxTurns: 8,
     env: {
       ...ctxEnv,
       ...collectGatewayEnv(ctxEnv),

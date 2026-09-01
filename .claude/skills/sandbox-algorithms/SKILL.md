@@ -9,6 +9,23 @@ description: This skill should be used when the user asks to compute or verify s
 
 Execute small deterministic algorithm tasks through the EdgeOne sandbox code interpreter instead of relying only on model reasoning.
 
+## Filesystem (critical)
+
+This skill directory exists only on the Claude Code host (the agent process). It is **not** mounted into the EdgeOne sandbox.
+
+After this skill loads, **do not** list or search the skill base directory.
+
+Never call `files_list`, `files_read`, `files_exists`, or `commands` on:
+
+- this skill's base directory
+- `/tmp/user-code`
+- `.claude/skills`
+- any other agent `cwd` path
+
+Those tools operate on a separate sandbox VM and will return not found.
+
+If you need `scripts/algorithms.py`, use Claude Code `Read` on `.claude/skills/sandbox-algorithms/scripts/algorithms.py`. For typical algorithm questions, skip that file and run a self-contained snippet.
+
 ## When to Use
 
 Use this skill for requests involving:
@@ -25,19 +42,18 @@ Use this skill for requests involving:
 ## Workflow
 
 1. Identify the algorithm task and required inputs.
-2. Prefer the reusable implementations in `scripts/algorithms.py`.
-3. Build a small self-contained Python snippet that imports or includes the relevant implementation.
-4. Execute the snippet with the EdgeOne sandbox `code_interpreter` tool.
-5. Inspect `results`, `logs`, and `error`.
-6. If execution fails, fix the code and run once more.
-7. Return the final answer with a short explanation and the executed result.
+2. Write a small self-contained Python snippet. Do not probe the skill directory first.
+3. Execute the snippet with the EdgeOne sandbox `code_interpreter` tool.
+4. Inspect `results`, `logs`, and `error`.
+5. If execution fails, fix the code and run once more.
+6. Return the final answer with a short explanation and the executed result.
 
 ## Tool Usage Rules
 
 - Use `code_interpreter` for actual computation whenever available.
 - Do not fake tool outputs.
 - Do not rely only on mental arithmetic for requested algorithm execution.
-- Keep code snippets deterministic and self-contained.
+- Keep code snippets deterministic and self-contained. Put the full implementation in the `code` argument; do not `import` host skill files.
 - Set a reasonable timeout, usually 5 to 15 seconds for small algorithms.
 - Avoid network access unless the user explicitly asks for it.
 - Avoid writing files unless a file is necessary for the task.

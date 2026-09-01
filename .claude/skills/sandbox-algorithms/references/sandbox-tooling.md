@@ -17,3 +17,5 @@ Arguments:
 ```
 
 Use Python for deterministic algorithm tasks unless the user asks for another language.
+
+The skill directory and agent `cwd` (including `/tmp/user-code` after deploy) are **not** on this sandbox filesystem. Pass source code in the `code` argument. Do not `import` or `open` host skill paths.
