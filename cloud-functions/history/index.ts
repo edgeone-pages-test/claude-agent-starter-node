@@ -4,7 +4,7 @@
  *
  * File path cloud-functions/history/index.ts maps to **POST /history**.
  *
- * Reads conversation history from `context.agent.store.getMessages()` and
+ * Reads conversation history from `context.agent!.store.getMessages()` and
  * returns it to the frontend for restoring the chat window after a page
  * refresh.
  *
@@ -14,11 +14,12 @@
  *
  * Following the official EdgeOne Makers Node Functions docs:
  *   - export `onRequestPost` for POST handlers
- *   - read JSON body via `await context.request.json()`
+ *   - read JSON body via `await context.request!.json()`
  *   - return a `Response` object
  *   https://pages.edgeone.ai/document/node-functions
  */
 
+import type { CloudFunctionContext } from '@edgeone/types';
 import { createLogger } from '../_logger';
 import { redactBase64InText } from '../_redact';
 
@@ -37,9 +38,9 @@ function jsonResponse(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), { status, headers: JSON_HEADERS });
 }
 
-async function readJsonBody(context: any): Promise<Record<string, unknown>> {
+async function readJsonBody(context: CloudFunctionContext): Promise<Record<string, unknown>> {
   try {
-    const data = await context.request.json();
+    const data = await context.request!.json();
     return data && typeof data === 'object' && !Array.isArray(data)
       ? (data as Record<string, unknown>)
       : {};
@@ -85,14 +86,14 @@ function contentToText(content: unknown): string {
   return String(content);
 }
 
-export async function onRequestPost(context: any): Promise<Response> {
+export async function onRequestPost(context: CloudFunctionContext): Promise<Response> {
   const startTime = Date.now();
   logger.log(`[history] start: ${new Date(startTime).toISOString()}`);
 
   const body = await readJsonBody(context);
   const conversationId = getConversationId(body);
   const userId = getUserId(body);
-  const { store } = context.agent;
+  const { store } = context.agent!;
 
   logger.log('conversationId:', conversationId, 'userId:', userId || '-');
 
@@ -108,7 +109,7 @@ export async function onRequestPost(context: any): Promise<Response> {
       order: 'asc',
     };
     if (userId) getArgs.userId = userId;
-    const history = await store.getMessages(getArgs);
+    const history = await store.getMessages(getArgs as any);
 
     const messages: FrontendMessage[] = [];
     for (const item of history) {

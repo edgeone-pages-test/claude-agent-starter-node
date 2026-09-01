@@ -12,6 +12,7 @@
  *   context.tools           — EdgeOne platform sandbox toolkit
  */
 
+import type { AgentContext } from '@edgeone/types';
 import { createSdkMcpServer, getSessionInfo } from '@anthropic-ai/claude-agent-sdk';
 import { resolveModelName, collectGatewayEnv } from '../_model';
 import { createLogger } from '../_logger';
@@ -141,8 +142,8 @@ function buildAgentOptions(opts?: {
   return options;
 }
 
-export async function onRequest(context: any) {
-  const body = context.request.body ?? {};
+export async function onRequest(context: AgentContext) {
+  const body = (context.request.body ?? {}) as Record<string, any>;
   const message = typeof body.message === 'string' ? body.message.trim() : '';
   const userMsgId = typeof body.userMsgId === 'string' ? body.userMsgId : undefined;
   const botMsgId = typeof body.botMsgId === 'string' ? body.botMsgId : undefined;
@@ -175,7 +176,7 @@ export async function onRequest(context: any) {
         messageId: userMsgId,
       };
       if (userId) appendArgs.userId = userId;
-      await store.appendMessage(appendArgs);
+      await store.appendMessage(appendArgs as any);
     } catch (e) { logger.error('[store] failed to save user message:', e); }
   }
 

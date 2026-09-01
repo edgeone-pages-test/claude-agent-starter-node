@@ -5,15 +5,16 @@
  * File path cloud-functions/clear-history/index.ts maps to **POST /clear-history**.
  *
  * Clears all backend messages for the current conversation via
- * `context.agent.store.clearMessages({ conversationId })`.
+ * `context.agent!.store.clearMessages({ conversationId })`.
  *
  * Following the official EdgeOne Makers Node Functions docs:
  *   - export `onRequestPost` for POST handlers
- *   - read JSON body via `await context.request.json()`
+ *   - read JSON body via `await context.request!.json()`
  *   - return a `Response` object
  *   https://pages.edgeone.ai/document/node-functions
  */
 
+import type { CloudFunctionContext } from '@edgeone/types';
 import { createLogger } from '../_logger';
 import { redactBase64Deep } from '../_redact';
 
@@ -25,9 +26,9 @@ function jsonResponse(data: unknown, status = 200): Response {
   return new Response(JSON.stringify(data), { status, headers: JSON_HEADERS });
 }
 
-async function readJsonBody(context: any): Promise<Record<string, unknown>> {
+async function readJsonBody(context: CloudFunctionContext): Promise<Record<string, unknown>> {
   try {
-    const data = await context.request.json();
+    const data = await context.request!.json();
     return data && typeof data === 'object' && !Array.isArray(data)
       ? (data as Record<string, unknown>)
       : {};
@@ -46,14 +47,14 @@ function getUserId(body: Record<string, unknown>): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
-export async function onRequestPost(context: any): Promise<Response> {
+export async function onRequestPost(context: CloudFunctionContext): Promise<Response> {
   const startTime = Date.now();
   logger.log(`[clear-history] start: ${new Date(startTime).toISOString()}`);
 
   const body = await readJsonBody(context);
   const conversationId = getConversationId(body);
   const userId = getUserId(body);
-  const { store } = context.agent;
+  const { store } = context.agent!;
 
   logger.log('conversationId:', conversationId, 'userId:', userId || '-');
 
@@ -66,7 +67,7 @@ export async function onRequestPost(context: any): Promise<Response> {
   try {
     const clearArgs: Record<string, unknown> = { conversationId };
     if (userId) clearArgs.userId = userId;
-    await store.clearMessages(clearArgs);
+    await store.clearMessages(clearArgs as any);
 
     const getArgs: Record<string, unknown> = {
       conversationId,
@@ -74,7 +75,7 @@ export async function onRequestPost(context: any): Promise<Response> {
       order: 'asc',
     };
     if (userId) getArgs.userId = userId;
-    const historyAfterClear = await store.getMessages(getArgs);
+    const historyAfterClear = await store.getMessages(getArgs as any);
     logger.log('[clear-history] history after clear:', {
       conversationId,
       count: Array.isArray(historyAfterClear) ? historyAfterClear.length : 0,
